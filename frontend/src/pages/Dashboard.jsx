@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getStats, getJobs } from '../api/jobApi';
+import { getStats, getJobs, deleteJob } from '../api/jobApi';
 import StatsCard from '../components/StatsCard';
 import JobCard from '../components/JobCard';
-import { deleteJob } from '../api/jobApi';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
@@ -57,7 +56,9 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {recent.map(job => <JobCard key={job._id} job={job} onDelete={handleDelete} />)}
+          {recent.map(job => (
+            <JobCard key={job._id} job={job} onDelete={handleDelete} onStatusChange={fetchData} />
+          ))}
         </div>
       )}
     </div>

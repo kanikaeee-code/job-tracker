@@ -62,7 +62,9 @@ export default function Applications() {
         <p className="text-center text-gray-400 py-16">No applications found.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map(job => <JobCard key={job._id} job={job} onDelete={handleDelete} />)}
+          {filtered.map(job => (
+            <JobCard key={job._id} job={job} onDelete={handleDelete} onStatusChange={fetchJobs} />
+          ))}
         </div>
       )}
     </div>

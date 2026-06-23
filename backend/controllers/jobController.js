@@ -1,15 +1,14 @@
 const Job = require('../models/Job');
 const Transaction = require('../models/Transaction');
 
-// Log a transaction helper
-const logTransaction = async (jobId, jobTitle, action, previousData, newData, description) => {
-  await Transaction.create({ jobId, jobTitle, action, previousData, newData, description });
+const logTransaction = async (userId, jobId, jobTitle, action, previousData, newData, description) => {
+  await Transaction.create({ user: userId, jobId, jobTitle, action, previousData, newData, description });
 };
 
-// GET all jobs
+// GET all jobs — only for logged-in user
 const getJobs = async (req, res) => {
   try {
-    const jobs = await Job.find().sort({ createdAt: -1 });
+    const jobs = await Job.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json({ success: true, count: jobs.length, jobs });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -19,7 +18,7 @@ const getJobs = async (req, res) => {
 // GET single job
 const getJob = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id);
+    const job = await Job.findOne({ _id: req.params.id, user: req.user._id });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
     res.json({ success: true, job });
   } catch (error) {
@@ -30,8 +29,9 @@ const getJob = async (req, res) => {
 // POST create job
 const createJob = async (req, res) => {
   try {
-    const job = await Job.create(req.body);
+    const job = await Job.create({ ...req.body, user: req.user._id });
     await logTransaction(
+      req.user._id,
       job._id,
       `${job.position} at ${job.company}`,
       'CREATED',
@@ -48,7 +48,7 @@ const createJob = async (req, res) => {
 // PUT update job
 const updateJob = async (req, res) => {
   try {
-    const oldJob = await Job.findById(req.params.id);
+    const oldJob = await Job.findOne({ _id: req.params.id, user: req.user._id });
     if (!oldJob) return res.status(404).json({ success: false, message: 'Job not found' });
 
     const updatedJob = await Job.findByIdAndUpdate(req.params.id, req.body, {
@@ -65,6 +65,7 @@ const updateJob = async (req, res) => {
     }
 
     await logTransaction(
+      req.user._id,
       updatedJob._id,
       `${updatedJob.position} at ${updatedJob.company}`,
       action,
@@ -82,10 +83,11 @@ const updateJob = async (req, res) => {
 // DELETE job
 const deleteJob = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id);
+    const job = await Job.findOne({ _id: req.params.id, user: req.user._id });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
     await logTransaction(
+      req.user._id,
       job._id,
       `${job.position} at ${job.company}`,
       'DELETED',
@@ -104,11 +106,12 @@ const deleteJob = async (req, res) => {
 // GET stats
 const getStats = async (req, res) => {
   try {
-    const total = await Job.countDocuments();
-    const applied = await Job.countDocuments({ status: 'Applied' });
-    const interview = await Job.countDocuments({ status: 'Interview' });
-    const offer = await Job.countDocuments({ status: 'Offer' });
-    const rejected = await Job.countDocuments({ status: 'Rejected' });
+    const uid = req.user._id;
+    const total = await Job.countDocuments({ user: uid });
+    const applied = await Job.countDocuments({ user: uid, status: 'Applied' });
+    const interview = await Job.countDocuments({ user: uid, status: 'Interview' });
+    const offer = await Job.countDocuments({ user: uid, status: 'Offer' });
+    const rejected = await Job.countDocuments({ user: uid, status: 'Rejected' });
     res.json({ success: true, stats: { total, applied, interview, offer, rejected } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
